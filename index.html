@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de OS Profissional</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --primary: #3498db;
+      --danger: #e74c3c;
+      --warning: #f39c12;
+      --success: #2ecc71;
+      --bg: #f4f4f4;
+      --white: #fff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg);
+      color: #333;
+    }
+
+    header, nav {
+      background-color: var(--primary);
+      color: var(--white);
+      padding: 1rem;
+      text-align: center;
+    }
+
+    main {
+      padding: 1rem;
+      max-width: 800px;
+      margin: auto;
+    }
+
+    section {
+      background: var(--white);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 0.6rem;
+      margin: 0.5rem 0;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      background-color: var(--primary);
+      color: var(--white);
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #2980b9;
+    }
+
+    .os-item {
+      background: var(--bg);
+      padding: 0.8rem;
+      margin: 0.5rem 0;
+      border-radius: 6px;
+    }
+
+    .actions {
+      margin-top: 0.5rem;
+    }
+
+    .actions button {
+      width: auto;
+      margin-right: 0.5rem;
+    }
+
+    canvas {
+      max-width: 100%;
+      margin-top: 1rem;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (min-width: 600px) {
+      input, select, button {
+        width: auto;
+        display: inline-block;
+        margin-right: 0.5rem;
+      }
+
+      form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sistema de Ordem de Serviço</h1>
+  </header>
+
+  <nav id="navBar" class="hidden">
+    <button onclick="showSection('mainApp')">Cadastro OS</button>
+    <button onclick="showSection('chartsSection')">Gráficos</button>
+    <button onclick="exportToPDF()">Exportar PDF</button>
+  </nav>
+
+  <main>
+    <section id="loginScreen">
+      <h2>Login</h2>
+      <input type="text" id="username" placeholder="Usuário" />
+      <input type="password" id="password" placeholder="Senha" />
+      <button onclick="login()">Entrar</button>
+    </section>
+
+    <section id="mainApp" class="hidden">
+      <h2>Cadastrar OS</h2>
+      <input type="text" id="nome" placeholder="Nome do Cliente" />
+      <select id="tipoServico">
+        <option value="Manutenção">Manutenção</option>
+        <option value="Instalação">Instalação</option>
+        <option value="Suporte">Suporte</option>
+      </select>
+      <select id="equipe">
+        <option value="Equipe A">Equipe A</option>
+        <option value="Equipe B">Equipe B</option>
+        <option value="Equipe C">Equipe C</option>
+      </select>
+      <input type="date" id="data" />
+      <input type="text" id="idOS" placeholder="ID da OS" />
+      <select id="status">
+        <option value="Pendente">Pendente</option>
+        <option value="Em andamento">Em andamento</option>
+        <option value="Concluído">Concluído</option>
+      </select>
+      <button onclick="salvarOS()">Salvar OS</button>
+
+      <h3>Ordens de Serviço</h3>
+      <div id="osList"></div>
+    </section>
+
+    <section id="chartsSection" class="hidden">
+      <h2>Gráficos</h2>
+      <canvas id="statusChart"></canvas>
+      <canvas id="tipoChart"></canvas>
+    </section>
+  </main>
+
+  <script>
+    let osArray = JSON.parse(localStorage.getItem("osData")) || [];
+    let editIndex = null;
+
+    function login() {
+      const user = document.getElementById("username").value;
+      const pass = document.getElementById("password").value;
+      if (user === "admin" && pass === "1234") {
+        document.getElementById("loginScreen").classList.add("hidden");
+        document.getElementById("navBar").classList.remove("hidden");
+        document.getElementById("mainApp").classList.remove("hidden");
+        renderOS();
+        renderCharts();
+      } else {
+        alert("Usuário ou senha inválidos!");
+      }
+    }
+
+    function showSection(id) {
+      document.getElementById("mainApp").classList.add("hidden");
+      document.getElementById("chartsSection").classList.add("hidden");
+      document.getElementById(id).classList.remove("hidden");
+      if (id === "chartsSection") renderCharts();
+    }
+
+    function salvarOS() {
+      const nome = document.getElementById("nome").value;
+      const tipo = document.getElementById("tipoServico").value;
+      const equipe = document.getElementById("equipe").value;
+      const data = document.getElementById("data").value;
+      const id = document.getElementById("idOS").value;
+      const status = document.getElementById("status").value;
+
+      if (nome && tipo && equipe && data && id && status) {
+        const novaOS = { nome, tipo, equipe, data, id, status };
+        if (editIndex !== null) {
+          osArray[editIndex] = novaOS;
+          editIndex = null;
+        } else {
+          osArray.push(novaOS);
+        }
+        localStorage.setItem("osData", JSON.stringify(osArray));
+        renderOS();
+        clearForm();
+      } else {
+        alert("Preencha todos os campos!");
+      }
+    }
+
+    function clearForm() {
+      document.getElementById("nome").value = "";
+      document.getElementById("tipoServico").value = "Manutenção";
+      document.getElementById("equipe").value = "Equipe A";
+      document.getElementById("data").value = "";
+      document.getElementById("idOS").value = "";
+      document.getElementById("status").value = "Pendente";
+    }
+
+    function renderOS() {
+      const container = document.getElementById("osList");
+      container.innerHTML = "";
+      osArray.forEach((os, index) => {
+        const div = document.createElement("div");
+        div.className = "os-item";
+        div.innerHTML = `
+          <strong>${os.nome}</strong><br>
+          Tipo: ${os.tipo} | Equipe: ${os.equipe}<br>
+          Data: ${os.data} | ID: ${os.id}<br>
+          Status: ${os.status}
+          <div class="actions">
+            <button onclick="editarOS(${index})">Editar</button>
+            <button onclick="confirmarExclusao(${index})">Excluir</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function editarOS(index) {
+      const os = osArray[index];
+      document.getElementById("nome").value = os.nome;
+      document.getElementById("tipoServico").value = os.tipo;
+      document.getElementById("equipe").value = os.equipe;
+      document.getElementById("data").value = os.data;
+      document.getElementById("idOS").value = os.id;
+      document.getElementById("status").value = os.status;
+      editIndex = index;
+      showSection("mainApp");
+    }
+
+    function confirmarExclusao(index) {
+      const os = osArray[index];
+      const confirmacao = confirm(`Deseja excluir a OS de ${os.nome} (ID: ${os.id})?`);
+      if (confirmacao) {
+        osArray.splice(index, 1);
+        localStorage.setItem("osData", JSON.stringify(osArray));
+        renderOS();
+        renderCharts();
+      }
+    }
+
+    function renderCharts() {
+      const statusCount = { "Pendente": 0, "Em andamento": 0, "Concluído": 0 };
+      const tipoCount = { "Manutenção": 0, "Instalação": 0, "Suporte": 0 };
+
+      osArray.forEach(os => {
+        statusCount[os.status]++;
+        tipoCount[os.tipo]++;
+      });
+
+      const statusCtx = document.getElementById("statusChart").getContext("2d");
+      if (window.statusChartObj) window.statusChartObj.destroy();
+      window.statusChartObj = new Chart(statusCtx, {
+        type: "pie",
+        data: {
+          labels: Object.keys(statusCount),
+          datasets: [{
+            data: Object.values(statusCount),
+            backgroundColor: ["#f39c12", "#3498db", "#2ecc71"]
+          }]
+        }
+      });
+
+      const tipoCtx = document.getElementById("tipoChart").getContext("2d");
+      if (window.tipoChartObj) window.tipoChartObj.destroy();
+      window.tipoChartObj = new Chart(tipoCtx, {
+        type: "bar",
+        data: {
+          labels: Object.keys(tipoCount),
+          datasets: [{
+            label: "Tipos de Serviço",
+            data: Object.values(tipoCount),
+            backgroundColor: ["#9b59b6", "#1abc9c", "#e74c3c"]
+          }]
+        }
+      });
+    }
+
+    function exportToPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text("Relatório de Ordens de Serviço", 10, 10);
+
+      let y = 20;
+      osArray.forEach((os, i) => {
+        doc.text(`${i + 1}. ${os.nome} | ${os.tipo} | ${os.equipe} | ${os.data} | ID: ${os.id} | ${os.status}`, 10, y);
+        y += 10;
+      });
+
+      doc.save("relatorio_os.pdf");
+    }
+  </script>
+</body>
+</html>
