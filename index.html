@@ -29,11 +29,63 @@
       color: #333;
     }
 
-    header, nav {
+    header {
       background-color: var(--primary);
       color: var(--white);
       padding: 1rem;
       text-align: center;
+    }
+
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      padding: 1rem;
+      background-color: var(--primary);
+    }
+
+    .nav-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-color: #2980b9;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    .nav-btn:hover {
+      background-color: #1abc9c;
+      transform: scale(1.1);
+    }
+
+    .nav-btn.active {
+      background-color: #2ecc71;
+    }
+
+    .nav-btn::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: -30px;
+      background: #333;
+      color: #fff;
+      padding: 5px 8px;
+      border-radius: 5px;
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      white-space: nowrap;
+    }
+
+    .nav-btn:hover::after {
+      opacity: 1;
     }
 
     main {
@@ -120,9 +172,9 @@
   </header>
 
   <nav id="navBar" class="hidden">
-    <button onclick="showSection('mainApp')">Cadastro OS</button>
-    <button onclick="showSection('chartsSection')">Gráficos</button>
-    <button onclick="exportToPDF()">Exportar PDF</button>
+    <button class="nav-btn active" data-tooltip="Cadastro OS" onclick="showSection('mainApp')">📝</button>
+    <button class="nav-btn" data-tooltip="Gráficos" onclick="showSection('chartsSection')">📊</button>
+    <button class="nav-btn" data-tooltip="Exportar PDF" onclick="exportToPDF()">📄</button>
   </nav>
 
   <main>
@@ -198,6 +250,13 @@
       document.getElementById("chartsSection").classList.add("hidden");
       document.getElementById(id).classList.remove("hidden");
       if (id === "chartsSection") renderCharts();
+
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      const btnMap = {
+        mainApp: 0,
+        chartsSection: 1
+      };
+      document.querySelectorAll('.nav-btn')[btnMap[id]].classList.add('active');
     }
 
     function salvarOS() {
@@ -215,7 +274,7 @@
           editIndex = null;
           Swal.fire({
             icon: 'success',
-            title: 'OS atualizada!',
+title: 'OS atualizada!',
             text: 'A ordem de serviço foi editada com sucesso.'
           });
         } else {
@@ -269,89 +328,94 @@
 
     function editarOS(index) {
       const os = osArray[index];
-document.getElementById("nome").value = os.nome;
+      document.getElementById("nome").value = os.nome;
       document.getElementById("tipoServico").value = os.tipo;
       document.getElementById("equipe").value = os.equipe;
       document.getElementById("data").value = os.data;
       document.getElementById("idOS").value = os.id;
       document.getElementById("status").value = os.status;
       editIndex = index;
-      showSection("mainApp");
     }
 
     function confirmarExclusao(index) {
-      const os = osArray[index];
       Swal.fire({
-        title: `Excluir OS de ${os.nome}?`,
-        text: `ID: ${os.id}`,
+        title: 'Tem certeza?',
+        text: "Essa ação não pode ser desfeita!",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#e74c3c',
         cancelButtonColor: '#3498db',
-        confirmButtonText: 'Sim, excluir',
-        cancelButtonText: 'Cancelar'
+        confirmButtonText: 'Sim, excluir!'
       }).then((result) => {
         if (result.isConfirmed) {
           osArray.splice(index, 1);
           localStorage.setItem("osData", JSON.stringify(osArray));
           renderOS();
-          renderCharts();
-          Swal.fire({
-            icon: 'success',
-            title: 'Excluído!',
-            text: 'A OS foi removida com sucesso.'
-          });
+          Swal.fire('Excluído!', 'A OS foi removida.', 'success');
         }
       });
     }
 
     function renderCharts() {
-      const statusCount = { "Pendente": 0, "Em andamento": 0, "Concluído": 0 };
-      const tipoCount = { "Manutenção": 0, "Instalação": 0, "Suporte": 0 };
+      const statusCount = { Pendente: 0, "Em andamento": 0, Concluído: 0 };
+      const tipoCount = { Manutenção: 0, Instalação: 0, Suporte: 0 };
 
       osArray.forEach(os => {
         statusCount[os.status]++;
         tipoCount[os.tipo]++;
       });
 
-      const statusCtx = document.getElementById("statusChart").getContext("2d");
-      if (window.statusChartObj) window.statusChartObj.destroy();
-      window.statusChartObj = new Chart(statusCtx, {
-        type: "pie",
+      const ctxStatus = document.getElementById("statusChart").getContext("2d");
+      new Chart(ctxStatus, {
+        type: "doughnut",
         data: {
           labels: Object.keys(statusCount),
           datasets: [{
             data: Object.values(statusCount),
-            backgroundColor: ["#f39c12", "#3498db", "#2ecc71"]
+            backgroundColor: [ "#f39c12", "#3498db", "#2ecc71" ]
           }]
         }
       });
 
-      const tipoCtx = document.getElementById("tipoChart").getContext("2d");
-      if (window.tipoChartObj) window.tipoChartObj.destroy();
-      window.tipoChartObj = new Chart(tipoCtx, {
+      const ctxTipo = document.getElementById("tipoChart").getContext("2d");
+      new Chart(ctxTipo, {
         type: "bar",
         data: {
           labels: Object.keys(tipoCount),
           datasets: [{
-            label: "Tipos de Serviço",
+            label: "Tipo de Serviço",
             data: Object.values(tipoCount),
-            backgroundColor: ["#9b59b6", "#1abc9c", "#e74c3c"]
+            backgroundColor: "#3498db"
           }]
         }
       });
     }
-
     function exportToPDF() {
+  Swal.fire({
+    title: 'Exportar PDF?',
+    text: 'Deseja gerar o relatório de Ordens de Serviço?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Sim, exportar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#2ecc71',
+    cancelButtonColor: '#e74c3c'
+  }).then((result) => {
+    if (result.isConfirmed) {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       doc.setFontSize(16);
-      doc.text("Relatório de Ordens de Serviço", 10, 10);
+      doc.text("Relatório de Ordens de Serviço", 20, 20);
 
-      let y = 20;
-      osArray.forEach((os, i) => {
-        doc.text(`${i + 1}. ${os.nome} | ${os.tipo} | ${os.equipe} | ${os.data} | ID: ${os.id} | ${os.status}`, 10, y);
+      let y = 30;
+      osArray.forEach((os, index) => {
+        doc.setFontSize(12);
+        doc.text(`OS ${index + 1}: ${os.nome} - ${os.tipo} - ${os.equipe} - ${os.data} - ${os.id} - ${os.status}`, 20, y);
         y += 10;
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
       });
 
       doc.save("relatorio_os.pdf");
@@ -362,6 +426,8 @@ document.getElementById("nome").value = os.nome;
         text: 'O relatório foi exportado com sucesso.'
       });
     }
+  });
+}
   </script>
 </body>
 </html>
