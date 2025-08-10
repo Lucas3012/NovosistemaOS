@@ -6,6 +6,7 @@
   <title>Sistema de OS Profissional</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     :root {
       --primary: #3498db;
@@ -173,13 +174,22 @@
       const user = document.getElementById("username").value;
       const pass = document.getElementById("password").value;
       if (user === "admin" && pass === "1234") {
+        Swal.fire({
+          icon: 'success',
+          title: 'Bem-vindo!',
+          text: 'Login realizado com sucesso.'
+        });
         document.getElementById("loginScreen").classList.add("hidden");
         document.getElementById("navBar").classList.remove("hidden");
         document.getElementById("mainApp").classList.remove("hidden");
         renderOS();
         renderCharts();
       } else {
-        alert("Usuário ou senha inválidos!");
+        Swal.fire({
+          icon: 'error',
+          title: 'Erro',
+          text: 'Usuário ou senha inválidos!'
+        });
       }
     }
 
@@ -203,14 +213,28 @@
         if (editIndex !== null) {
           osArray[editIndex] = novaOS;
           editIndex = null;
+          Swal.fire({
+            icon: 'success',
+            title: 'OS atualizada!',
+            text: 'A ordem de serviço foi editada com sucesso.'
+          });
         } else {
           osArray.push(novaOS);
+          Swal.fire({
+            icon: 'success',
+            title: 'OS salva!',
+            text: 'A ordem de serviço foi cadastrada com sucesso.'
+          });
         }
         localStorage.setItem("osData", JSON.stringify(osArray));
         renderOS();
         clearForm();
       } else {
-        alert("Preencha todos os campos!");
+        Swal.fire({
+          icon: 'warning',
+          title: 'Atenção',
+          text: 'Preencha todos os campos!'
+        });
       }
     }
 
@@ -245,7 +269,7 @@
 
     function editarOS(index) {
       const os = osArray[index];
-      document.getElementById("nome").value = os.nome;
+document.getElementById("nome").value = os.nome;
       document.getElementById("tipoServico").value = os.tipo;
       document.getElementById("equipe").value = os.equipe;
       document.getElementById("data").value = os.data;
@@ -257,13 +281,28 @@
 
     function confirmarExclusao(index) {
       const os = osArray[index];
-      const confirmacao = confirm(`Deseja excluir a OS de ${os.nome} (ID: ${os.id})?`);
-      if (confirmacao) {
-        osArray.splice(index, 1);
-        localStorage.setItem("osData", JSON.stringify(osArray));
-        renderOS();
-        renderCharts();
-      }
+      Swal.fire({
+        title: `Excluir OS de ${os.nome}?`,
+        text: `ID: ${os.id}`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e74c3c',
+        cancelButtonColor: '#3498db',
+        confirmButtonText: 'Sim, excluir',
+        cancelButtonText: 'Cancelar'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          osArray.splice(index, 1);
+          localStorage.setItem("osData", JSON.stringify(osArray));
+          renderOS();
+          renderCharts();
+          Swal.fire({
+            icon: 'success',
+            title: 'Excluído!',
+            text: 'A OS foi removida com sucesso.'
+          });
+        }
+      });
     }
 
     function renderCharts() {
@@ -316,6 +355,12 @@
       });
 
       doc.save("relatorio_os.pdf");
+
+      Swal.fire({
+        icon: 'success',
+        title: 'PDF gerado!',
+        text: 'O relatório foi exportado com sucesso.'
+      });
     }
   </script>
 </body>
